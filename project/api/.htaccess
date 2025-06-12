@@ -1,0 +1,58 @@
+<IfModule mod_rewrite.c>
+    # Activa el motor de reescritura de URLs
+    RewriteEngine On
+
+    # =============================================
+    # MANEJO DE SOLICITUDES PREFLIGHT (OPTIONS)
+    # =============================================
+    # Cuando el navegador envía una solicitud OPTIONS (preflight CORS)
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    # Responde inmediatamente con 200 OK y pasa el header ORIGIN como variable de entorno
+    RewriteRule ^(.*)$ $1 [R=200,L,E=HTTP_ORIGIN:%{HTTP:ORIGIN}]
+
+    # =============================================
+    # ENRUTAMIENTO PRINCIPAL
+    # =============================================
+    # Si la solicitud NO es para un archivo existente
+    RewriteCond %{REQUEST_FILENAME} !-f
+    # Y NO es para un directorio existente
+    RewriteCond %{REQUEST_FILENAME} !-d
+    # Redirige todas las solicitudes a index.php manteniendo los parámetros (QSA = Query String Append)
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    # =============================================
+    # CONFIGURACIÓN CORS (Complementaria a PHP)
+    # =============================================
+    
+    # Permite el envío de credenciales (cookies, autenticación HTTP)
+    #Header always set Access-Control-Allow-Credentials "true"
+    
+    # Configuración dinámica del origen permitido:
+    # 1. Detecta si el ORIGIN coincide con localhost o 127.0.0.1 en cualquier puerto
+    SetEnvIf Origin "^(https?://(localhost|127\.0\.0\.1)(:\d+)?)$" allowed_origin=$0
+    # 2. Establece el header Access-Control-Allow-Origin solo si coincide con el patrón
+    #Header always set Access-Control-Allow-Origin "%{allowed_origin}e" env=allowed_origin
+    Access-Control-Allow-Origin: http://localhost:5173
+    Access-Control-Allow-Credentials: true
+    Set-Cookie: PHPSESSID=...; SameSite=None; Secure
+    # Métodos HTTP permitidos
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    
+    # Headers personalizados permitidos en las solicitudes
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+
+    # =============================================
+    # CABECERAS DE SEGURIDAD
+    # =============================================
+    
+    # Evita que el navegador interprete archivos como otro MIME type
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Protección contra clickjacking
+    Header always set X-Frame-Options "DENY"
+    
+    # Habilita el filtro XSS del navegador
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
